@@ -31,16 +31,24 @@ def class_counts(df: pd.DataFrame):
     plt.bar(animal_types, counts)
     plt.xlabel('Animal Type')
     plt.ylabel('Count')
-    plt.title('Animal Type Counts')
+    plt.title('Animal Type Counts - Training')
     plt.show()
 
     print("\nVALIDATION SET")
     classes = df[df["image_file"].isin(validation_files)]["animal_type"].value_counts()
     print(classes.to_string(header=False))
+    counts = classes.tolist()
+    plt.bar(animal_types, counts)
+    plt.title('Animal Type Counts - Validation')
+    plt.show()
 
     print("\nTESTING SET")
     classes = df[df["image_file"].isin(testing_files)]["animal_type"].value_counts()
     print(classes.to_string(header=False))
+    counts = classes.tolist()
+    plt.bar(animal_types, counts)
+    plt.title('Animal Type Counts - Testing')
+    plt.show()
 
 
 if __name__ == '__main__':
