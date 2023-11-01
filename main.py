@@ -13,44 +13,37 @@ VALIDATION_IMAGES = ANIMAL_IMAGES + "validation/"
 TESTING_IMAGES = ANIMAL_IMAGES + "testing/"
 
 
-def read_csv() -> pd.DataFrame:
-    df = pd.read_csv(ANIMAL_CSV, encoding="utf-8", index_col=0)
-    return df
-
-
-def class_counts(df: pd.DataFrame):
-    training_files = os.listdir(TRAINING_IMAGES)
-    validation_files = os.listdir(VALIDATION_IMAGES)
-    testing_files = os.listdir(TESTING_IMAGES)
-
-    print("TRAINING SET")
-    classes = df[df["image_file"].isin(training_files)]["animal_type"].value_counts()
-    print(classes.to_string(header=False))
-    animal_types = classes.index.tolist()
-    counts = classes.tolist()
-    plt.bar(animal_types, counts)
-    plt.xlabel('Animal Type')
-    plt.ylabel('Count')
-    plt.title('Animal Type Counts - Training')
-    plt.show()
-
-    print("\nVALIDATION SET")
-    classes = df[df["image_file"].isin(validation_files)]["animal_type"].value_counts()
-    print(classes.to_string(header=False))
-    counts = classes.tolist()
-    plt.bar(animal_types, counts)
-    plt.title('Animal Type Counts - Validation')
-    plt.show()
-
-    print("\nTESTING SET")
-    classes = df[df["image_file"].isin(testing_files)]["animal_type"].value_counts()
-    print(classes.to_string(header=False))
-    counts = classes.tolist()
-    plt.bar(animal_types, counts)
-    plt.title('Animal Type Counts - Testing')
-    plt.show()
-
-
 if __name__ == '__main__':
-    df = read_csv()
-    class_counts(df)
+    # read in data from csv
+    df = pd.read_csv(ANIMAL_CSV, encoding="utf-8", index_col=0)
+    classes = sorted(df["animal_type"].unique())
+
+    # split data into training, validation, and test sets
+    training = int(len(df) * 0.7)
+    validation = int(len(df) * 0.2)
+
+    training_set = df[:training]
+    validation_set = df[training:training + validation]
+    test_set = df[training + validation:]
+
+    # display class distribution
+    title = "Training Set"
+    print(title)
+    print(training_set.value_counts("animal_type").to_string(header=False))
+    plt.bar(classes, training_set.value_counts("animal_type"))
+    plt.title(title)
+    plt.show()
+
+    title = "Validation Set"
+    print("\n" + title)
+    print(validation_set.value_counts("animal_type").to_string(header=False))
+    plt.bar(classes, validation_set.value_counts("animal_type"))
+    plt.title(title)
+    plt.show()
+
+    title = "Test Set"
+    print("\n" + title)
+    print(test_set.value_counts("animal_type").to_string(header=False))
+    plt.bar(classes, test_set.value_counts("animal_type"))
+    plt.title(title)
+    plt.show()
