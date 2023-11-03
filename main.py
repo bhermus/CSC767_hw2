@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -55,7 +56,7 @@ if __name__ == '__main__':
 
     model = Sequential()
 
-    model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(142, 107, 3)))
+    model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(107, 142, 3)))
     model.add(MaxPooling2D(2, 2))
     model.add(BatchNormalization())
 
@@ -83,13 +84,19 @@ if __name__ == '__main__':
 
     # model.summary()
 
-    X_train = [img_to_array(Image.open(ANIMAL_IMAGES + path)) for path in training_set["image_file"].values]
-    X_train = [img.resize((142, 107)) for img in X_train]
-    X_train = [img_to_array(image) for image in X_train]
+    images = []
+    for path in training_set["image_file"].values:
+        image = Image.open(ANIMAL_IMAGES + path)
+        if image.size != (142, 107):
+            image = image.resize((142, 107))
+        images.append(image)
+
+    X_train = np.array([img_to_array(img) for img in images])
+
+    class_label_to_int = {class_label: i for i, class_label in enumerate(classes)}
+
     y_train = training_set["animal_type"].values
+    y_train = [class_label_to_int[label] for label in y_train]
+    y_train_encoded = to_categorical(y_train, num_classes=len(classes))
 
-    # y_train = to_categorical(y_train)
-
-    # X_train = X_train.reshape(-1, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS)
-
-    history = model.fit(X_train, y_train, batch_size=32, epochs=30, validation_split=0.2)
+    history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_split=0.2)
