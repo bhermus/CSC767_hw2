@@ -54,6 +54,7 @@ if __name__ == '__main__':
     plt.title(title)
     # plt.show()
 
+    # set up our CNN
     model = Sequential()
 
     model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(107, 142, 3)))
@@ -84,14 +85,15 @@ if __name__ == '__main__':
 
     # model.summary()
 
+    # organize our datasets into X and y labels so we can run them through the CNN
     images = []
     for path in training_set["image_file"].values:
         image = Image.open(ANIMAL_IMAGES + path)
-        if image.size != (142, 107):
+        if image.size != (142, 107):  # as a precaution, we're making sure all images are the same size
             image = image.resize((142, 107))
         images.append(image)
 
-    X_train = np.array([img_to_array(img) for img in images])
+    X_train = np.array([img_to_array(img) for img in images])  # this is our training input
 
     images = []
     for path in validation_set["image_file"].values:
@@ -100,16 +102,62 @@ if __name__ == '__main__':
             image = image.resize((142, 107))
         images.append(image)
 
-    X_val = np.array([img_to_array(img) for img in images])
+    X_val = np.array([img_to_array(img) for img in images])  # this is our validation input
 
     class_label_to_int = {class_label: i for i, class_label in enumerate(classes)}
 
     y_val = validation_set["animal_type"].values
     y_val = [class_label_to_int[label] for label in y_val]
-    y_val_encoded = to_categorical(y_val, num_classes=len(classes))
+    y_val_encoded = to_categorical(y_val, num_classes=len(classes))  # this is our validation labels
 
     y_train = training_set["animal_type"].values
     y_train = [class_label_to_int[label] for label in y_train]
-    y_train_encoded = to_categorical(y_train, num_classes=len(classes))
+    y_train_encoded = to_categorical(y_train, num_classes=len(classes))  # this is our training labels
 
+    # fit our CNN to our training set, with our provided validation set
     history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
+
+    # get training and validation loss and accuracy values from history
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    accuracy = history.history['accuracy']
+    val_accuracy = history.history['val_accuracy']
+
+    # create epochs range
+    epochs = range(1, len(loss) + 1)
+
+    # plot training loss
+    plt.figure()
+    plt.plot(epochs, loss, 'b', label='Training loss')
+    plt.title('Training Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+    # plot validation loss
+    plt.figure()
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title('Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+    # plot training accuracy
+    plt.figure()
+    plt.plot(epochs, accuracy, 'b', label='Training accuracy')
+    plt.title('Training Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
+
+    # plot validation accuracy
+    plt.figure()
+    plt.plot(epochs, val_accuracy, 'b', label='Validation accuracy')
+    plt.title('Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
