@@ -97,24 +97,27 @@ if __name__ == '__main__':
         horizontal_flip=True,
         fill_mode='nearest'
     )
-    rabbit_samples = X_train[y_train == class_label_to_int['Rabbit']]
+    rabbit_class_label = class_label_to_int['Rabbit']
+    rabbit_indices = [i for i, label in enumerate(y_train) if label == rabbit_class_label]
     num_augmented_samples = 2300
     augmented_samples = []
     for i in range(num_augmented_samples):
-        for sample in rabbit_samples:
-            augmented_sample = datagen.random_transform(sample)
-            augmented_samples.append(augmented_sample)
+        random_index = np.random.choice(rabbit_indices)
+        sample = X_train[random_index]
+        augmented_sample = datagen.random_transform(X_train[random_index])
+        augmented_samples.append(augmented_sample)
+
     augmented_samples = np.array(augmented_samples).reshape(-1, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 
-    X_train = np.vstack([X_train, np.array(augmented_samples)])
-    y_train = np.hstack([y_train, [class_label_to_int['Rabbit']] * num_augmented_samples])
+    X_train_balanced = np.array(X_train.tolist() + augmented_samples.tolist())
+    y_train_balanced = np.hstack([y_train, [class_label_to_int['Rabbit']] * num_augmented_samples])
 
     # display balanced training set breakdown
     title = "Balanced Training Set"
     print("\n" + title)
-    print(pd.Series(y_train).value_counts().to_string(header=False))
+    print(pd.Series(y_train_balanced).value_counts().sort_index().to_string(header=False))
     plt.figure()
-    plt.bar(classes, pd.Series(y_train).value_counts())
+    plt.bar(classes, pd.Series(y_train_balanced).value_counts().sort_index())
     plt.title(title)
     plt.show()
 
@@ -149,7 +152,7 @@ if __name__ == '__main__':
 
     model.summary()
 
-    # fit our CNN to our training set, with our provided validation set
+    # fit our CNN to our unbalanced training set, with our provided validation set
     history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
 
     # get training and validation loss and accuracy values from history
@@ -158,12 +161,25 @@ if __name__ == '__main__':
     accuracy = history.history['accuracy']
     val_accuracy = history.history['val_accuracy']
 
+    # using the same CNN on the balanced training set
+    y_train_balanced_encoded = to_categorical(y_train_balanced, num_classes=len(classes))
+    print(X_train_balanced.shape)
+    print(y_train_balanced_encoded.shape)
+    history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
+
+    # get training and validation loss and accuracy values from history
+    loss_balanced = history.history['loss']
+    val_loss_balanced = history.history['val_loss']
+    accuracy_balanced = history.history['accuracy']
+    val_accuracy_balanced = history.history['val_accuracy']
+
     # create epochs range
     epochs = range(1, len(loss) + 1)
 
     # plot training loss
     plt.figure()
-    plt.plot(epochs, loss, 'b', label='Training loss')
+    plt.plot(epochs, loss, 'b', label='Unbalanced')
+    plt.plot(epochs, loss_balanced, 'r', label='Balanced')
     plt.title('Training Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
@@ -172,7 +188,8 @@ if __name__ == '__main__':
 
     # plot validation loss
     plt.figure()
-    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.plot(epochs, val_loss, 'b', label='Unbalanced')
+    plt.plot(epochs, val_loss_balanced, 'r', label='Balanced')
     plt.title('Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
@@ -181,7 +198,8 @@ if __name__ == '__main__':
 
     # plot training accuracy
     plt.figure()
-    plt.plot(epochs, accuracy, 'b', label='Training accuracy')
+    plt.plot(epochs, accuracy, 'b', label='Unbalanced')
+    plt.plot(epochs, accuracy_balanced, 'r', label='Balanced')
     plt.title('Training Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
@@ -190,7 +208,8 @@ if __name__ == '__main__':
 
     # plot validation accuracy
     plt.figure()
-    plt.plot(epochs, val_accuracy, 'b', label='Validation accuracy')
+    plt.plot(epochs, val_accuracy, 'b', label='Unbalanced')
+    plt.plot(epochs, val_accuracy_balanced, 'r', label='Balanced')
     plt.title('Validation Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
