@@ -93,10 +93,23 @@ if __name__ == '__main__':
 
     X_train = np.array([img_to_array(img) for img in images])
 
+    images = []
+    for path in validation_set["image_file"].values:
+        image = Image.open(ANIMAL_IMAGES + path)
+        if image.size != (142, 107):
+            image = image.resize((142, 107))
+        images.append(image)
+
+    X_val = np.array([img_to_array(img) for img in images])
+
     class_label_to_int = {class_label: i for i, class_label in enumerate(classes)}
+
+    y_val = validation_set["animal_type"].values
+    y_val = [class_label_to_int[label] for label in y_val]
+    y_val_encoded = to_categorical(y_val, num_classes=len(classes))
 
     y_train = training_set["animal_type"].values
     y_train = [class_label_to_int[label] for label in y_train]
     y_train_encoded = to_categorical(y_train, num_classes=len(classes))
 
-    history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_split=0.2)
+    history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
