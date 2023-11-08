@@ -167,6 +167,9 @@ if __name__ == '__main__':
     print(y_train_balanced_encoded.shape)
     model.load_weights("weights.h5")
     history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
+    model.save("balanced.h5")
+    with open("balanced_history.pkl", "wb") as file:
+        pickle.dump(history, file)
 
     # get training and validation loss and accuracy values from history
     loss_balanced = history.history['loss']
