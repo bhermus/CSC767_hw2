@@ -149,7 +149,7 @@ if __name__ == '__main__':
     model.add(Dense(len(classes), activation="softmax"))
 
     model.compile(optimizer=Adam(learning_rate=0.001), loss="categorical_crossentropy", metrics=["accuracy"])
-
+    model.save_weights("weights.h5")  # saving the initial, randomized weights so we can easily reset the model
     model.summary()
 
     # fit our CNN to our unbalanced training set, with our provided validation set
@@ -165,6 +165,7 @@ if __name__ == '__main__':
     y_train_balanced_encoded = to_categorical(y_train_balanced, num_classes=len(classes))
     print(X_train_balanced.shape)
     print(y_train_balanced_encoded.shape)
+    model.load_weights("weights.h5")
     history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
 
     # get training and validation loss and accuracy values from history
