@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from keras import Sequential
 from keras.src.layers import Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, Dropout
-from keras.src.optimizers import Adam
+from keras.src.optimizers import Adam, SGD
 from keras.src.preprocessing.image import ImageDataGenerator
 from keras.src.utils import to_categorical, img_to_array
+import tensorflow as tf
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -19,6 +20,15 @@ ANIMAL_IMAGES = "animal_images/"
 IMAGE_HEIGHT = 107
 IMAGE_WIDTH = 142
 IMAGE_CHANNELS = 3
+
+
+# exponentially decreasing learning rate from the 10th epoch and on
+def learning_rate_scheduler(epoch, learning_rate):
+    if epoch < 10:
+        return learning_rate
+    else:
+        return learning_rate * tf.math.exp(-0.1)
+
 
 # plt.show(block=False)
 if __name__ == '__main__':
@@ -155,32 +165,38 @@ if __name__ == '__main__':
 
     # fit our CNN to our unbalanced training set, with our provided validation set
     history = model.fit(X_train, y_train_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
+    model.save("unbalanced.keras")  # we save our models so we don't have to rerun training each time
+    with open("unbalanced_history.pkl", "wb") as file:
+        pickle.dump(history.history, file)  # we pickle our training histories so we don't have to rerun them each time
+
+    with open("unbalanced_history.pkl", "rb") as file:
+        history = pickle.load(file)
 
     # get training and validation loss and accuracy values from history
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    accuracy = history.history['accuracy']
-    val_accuracy = history.history['val_accuracy']
+    loss = history['loss']
+    val_loss = history['val_loss']
+    accuracy = history['accuracy']
+    val_accuracy = history['val_accuracy']
 
     # using the same CNN on the balanced training set
     y_train_balanced_encoded = to_categorical(y_train_balanced, num_classes=len(classes))
-    print(X_train_balanced.shape)
-    print(y_train_balanced_encoded.shape)
-    model.load_weights("weights.h5")
+    model.load_weights("weights.h5")  # reset weights
     history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
-    model.save("balanced.h5")
+    model.save("balanced.keras")
     with open("balanced_history.pkl", "wb") as file:
-        pickle.dump(history, file)
+        pickle.dump(history.history, file)
+    with open("balanced_history.pkl", "rb") as file:
+        history = pickle.load(file)
 
-    # get training and validation loss and accuracy values from history
-    loss_balanced = history.history['loss']
-    val_loss_balanced = history.history['val_loss']
-    accuracy_balanced = history.history['accuracy']
-    val_accuracy_balanced = history.history['val_accuracy']
+    loss_balanced = history['loss']
+    val_loss_balanced = history['val_loss']
+    accuracy_balanced = history['accuracy']
+    val_accuracy_balanced = history['val_accuracy']
 
     # create epochs range
     epochs = range(1, len(loss) + 1)
 
+    # plot comparisons between balanced and unbalanced datasets
     # plot training loss
     plt.figure()
     plt.plot(epochs, loss, 'b', label='Unbalanced')
@@ -245,22 +261,54 @@ if __name__ == '__main__':
     model.add(Dropout(0.5))
     model.add(Dense(len(classes), activation="softmax"))
     model.compile(optimizer=Adam(learning_rate=0.001), loss="categorical_crossentropy", metrics=["accuracy"])
+
     history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
-    model.save("5_layers.h5")
-
+    model.save("5_layers.keras")
     with open("5_layers_history.pkl", "wb") as file:
-        pickle.dump(history, file)
+        pickle.dump(history.history, file)
+    with open("5_layers_history.pkl", "rb") as file:
+        history_5_layer = pickle.load(file)
 
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    accuracy = history.history['accuracy']
-    val_accuracy = history.history['val_accuracy']
+    loss_5_layer = history_5_layer['loss']
+    val_loss_5_layer = history_5_layer['val_loss']
+    accuracy_5_layer = history_5_layer['accuracy']
+    val_accuracy_5_layer = history_5_layer['val_accuracy']
 
+    # introducing learning rate scheduling
+    callback = tf.keras.callbacks.LearningRateScheduler(learning_rate_scheduler)
+    model.load_weights("weights.h5")  # reset weights
+    history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded), callbacks=[callback])
+    model.save("learning_rate_scheduling.keras")
+    with open("learning_rate_scheduling_history.pkl", "wb") as file:
+        pickle.dump(history.history, file)
+    with open("learning_rate_scheduling_history.pkl", "rb") as file:
+        history = pickle.load(file)
+    loss = history['loss']
+    val_loss = history['val_loss']
+    accuracy = history['accuracy']
+    val_accuracy = history['val_accuracy']
 
+    # trying SGD instead of Adam
+    model.compile(optimizer=SGD(learning_rate=0.001), loss="categorical_crossentropy", metrics=["accuracy"])
+    model.load_weights("weights.h5")  # reset weights
+    history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded), callbacks=[callback])
+    model.save("sgd.keras")
+    with open("sgd.pkl", "wb") as file:
+        pickle.dump(history.history, file)
+    with open("sgd.pkl", "rb") as file:
+        history = pickle.load(file)
+
+    loss_sgd = history['loss']
+    val_loss_sgd = history['val_loss']
+    accuracy_sgd = history['accuracy']
+    val_accuracy_sgd = history['val_accuracy']
 
     # plot training loss
     plt.figure()
-    plt.plot(epochs, loss, 'b', label='5 Conv Layers')
+    plt.plot(epochs, loss_balanced, 'b', label='Initial CNN')
+    plt.plot(epochs, loss_5_layer, 'r', label='5 Conv Layers')
+    plt.plot(epochs, loss, 'g', label='Learning Rate Scheduling')
+    plt.plot(epochs, loss_sgd, 'm', label='SGD')
     plt.title('Training Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
@@ -269,7 +317,10 @@ if __name__ == '__main__':
 
     # plot validation loss
     plt.figure()
-    plt.plot(epochs, val_loss, 'b', label='5 Conv Layers')
+    plt.plot(epochs, val_loss_balanced, 'b', label='Initial CNN')
+    plt.plot(epochs, val_loss_5_layer, 'r', label='5 Conv Layers')
+    plt.plot(epochs, val_loss, 'g', label='Learning Rate Scheduling')
+    plt.plot(epochs, val_loss_sgd, 'm', label='SGD')
     plt.title('Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
@@ -278,7 +329,10 @@ if __name__ == '__main__':
 
     # plot training accuracy
     plt.figure()
-    plt.plot(epochs, accuracy, 'b', label='5 Conv Layers')
+    plt.plot(epochs, accuracy_balanced, 'b', label='Initial CNN')
+    plt.plot(epochs, accuracy_5_layer, 'r', label='5 Conv Layers')
+    plt.plot(epochs, accuracy, 'g', label='Learning Rate Scheduling')
+    plt.plot(epochs, accuracy_sgd, 'm', label='SGD')
     plt.title('Training Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
@@ -287,7 +341,10 @@ if __name__ == '__main__':
 
     # plot validation accuracy
     plt.figure()
-    plt.plot(epochs, val_accuracy, 'b', label='5 Conv Layers')
+    plt.plot(epochs, val_accuracy_balanced, 'b', label='Initial CNN')
+    plt.plot(epochs, val_accuracy_5_layer, 'r', label='5 Conv Layers')
+    plt.plot(epochs, val_accuracy, 'g', label='Learning Rate Scheduling')
+    plt.plot(epochs, val_accuracy_sgd, 'm', label='SGD')
     plt.title('Validation Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
