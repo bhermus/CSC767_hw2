@@ -220,4 +220,77 @@ if __name__ == '__main__':
     plt.ylabel('Accuracy')
     plt.legend()
     plt.show()
+
+    # recreating the model with 5 convolution layers instead of 4
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(107, 142, 3)))
+    model.add(MaxPooling2D(2, 2))
+    model.add(BatchNormalization())
+    model.add(Conv2D(64, (3, 3), activation="relu"))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(BatchNormalization())
+    model.add(Conv2D(128, (3, 3), activation='relu'))
+    model.add(MaxPooling2D(2, 2))
+    model.add(BatchNormalization())
+    model.add(Conv2D(256, (3, 3), activation="relu"))
+    model.add(MaxPooling2D(2, 2))
+    model.add(BatchNormalization())
+
+    model.add(Conv2D(256, (3, 3), activation="relu"))  # 5th convolution layer
+    model.add(MaxPooling2D(2, 2))
+    model.add(BatchNormalization())
+
+    model.add(Flatten())
+    model.add(Dense(128, activation="relu"))
+    model.add(Dropout(0.5))
+    model.add(Dense(len(classes), activation="softmax"))
+    model.compile(optimizer=Adam(learning_rate=0.001), loss="categorical_crossentropy", metrics=["accuracy"])
+    history = model.fit(X_train_balanced, y_train_balanced_encoded, batch_size=32, epochs=30, validation_data=(X_val, y_val_encoded))
+    model.save("5_layers.h5")
+
+    with open("5_layers_history.pkl", "wb") as file:
+        pickle.dump(history, file)
+
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    accuracy = history.history['accuracy']
+    val_accuracy = history.history['val_accuracy']
+
+
+
+    # plot training loss
+    plt.figure()
+    plt.plot(epochs, loss, 'b', label='5 Conv Layers')
+    plt.title('Training Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    # plt.show()
+
+    # plot validation loss
+    plt.figure()
+    plt.plot(epochs, val_loss, 'b', label='5 Conv Layers')
+    plt.title('Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    # plt.show()
+
+    # plot training accuracy
+    plt.figure()
+    plt.plot(epochs, accuracy, 'b', label='5 Conv Layers')
+    plt.title('Training Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    # plt.show()
+
+    # plot validation accuracy
+    plt.figure()
+    plt.plot(epochs, val_accuracy, 'b', label='5 Conv Layers')
+    plt.title('Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
     
