@@ -38,6 +38,9 @@ def display_activation_layer(model, layer_name, image):
 
     activations = activation_model.predict(image)
 
+    if len(activations.shape) == 2:
+        activations = activations.reshape(1, 1, 1, activations.shape[1])
+
     # visualize each channel in the intermediate activations
     fig = None
     for i in range(activations.shape[-1]):
