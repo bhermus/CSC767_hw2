@@ -4,10 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
-from keras import Sequential
+from keras import Sequential, Model
 from keras.src.layers import Conv2D, MaxPooling2D, BatchNormalization, Flatten, Dense, Dropout
 from keras.src.optimizers import Adam, SGD
 from keras.src.preprocessing.image import ImageDataGenerator
+from keras.src.saving.saving_api import load_model
 from keras.src.utils import to_categorical, img_to_array
 import tensorflow as tf
 
@@ -28,6 +29,32 @@ def learning_rate_scheduler(epoch, learning_rate):
         return learning_rate
     else:
         return learning_rate * tf.math.exp(-0.1)
+
+
+def display_activation_layer(model, layer_name, image):
+    activation_model = Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
+
+    image = image.reshape(1, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
+
+    activations = activation_model.predict(image)
+
+    # visualize each channel in the intermediate activations
+    fig = None
+    for i in range(activations.shape[-1]):
+        if i % 20 == 0:
+            if fig:
+                # plt.show()  # Show the previous figure
+                plt.savefig(f"{layer_name}_{i}")
+            fig = plt.figure(figsize=(15, 15))
+            plt.subplots_adjust(hspace=0.5)
+
+        plt.subplot(4, 5, (i % 20) + 1)
+        plt.imshow(activations[0, :, :, i], cmap="viridis")
+        plt.title(f"Activation of Channel {i}")
+
+    # Show the last figure
+    plt.savefig(f"{layer_name}_{i}")
+    plt.show()
 
 
 # plt.show(block=False)
@@ -194,7 +221,7 @@ if __name__ == '__main__':
     val_accuracy_balanced = history['val_accuracy']
 
     # create epochs range
-    epochs = range(1, len(loss) + 1)
+    epochs = list(range(1, len(loss) + 1))
 
     # plot comparisons between balanced and unbalanced datasets
     # plot training loss
@@ -349,5 +376,31 @@ if __name__ == '__main__':
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.legend()
-    plt.show()
-    
+    # plt.show()
+
+    model = load_model("learning_rate_scheduling.keras", compile=False)
+    # printing intermediate activation layers
+    layer_name = "conv2d_4"  # Change this to the desired layer name
+    img = X_train_balanced[0]
+    display_activation_layer(model, "conv2d_4", img)
+    display_activation_layer(model, "max_pooling2d_4", img)
+    display_activation_layer(model, "batch_normalization_4", img)
+    display_activation_layer(model, "conv2d_5", img)
+    display_activation_layer(model, "max_pooling2d_5", img)
+    display_activation_layer(model, "batch_normalization_5", img)
+    display_activation_layer(model, "conv2d_6", img)
+    display_activation_layer(model, "max_pooling2d_6", img)
+    display_activation_layer(model, "batch_normalization_6", img)
+    display_activation_layer(model, "conv2d_7", img)
+    display_activation_layer(model, "max_pooling2d_7", img)
+    display_activation_layer(model, "batch_normalization_7", img)
+    display_activation_layer(model, "conv2d_8", img)
+    display_activation_layer(model, "max_pooling2d_8", img)
+    display_activation_layer(model, "batch_normalization_8", img)
+    display_activation_layer(model, "flatten_1", img)
+    display_activation_layer(model, "dense_2", img)
+    display_activation_layer(model, "dropout_1", img)
+    display_activation_layer(model, "dense_3", img)
+
+
+plt.show()
